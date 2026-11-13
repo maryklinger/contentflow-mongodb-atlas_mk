@@ -1,2 +1,11 @@
+# Librerías necesarias para ejecutar la API de ContentFlow.
+# Para instalarlas todas juntas, se utiliza el comando: python -m pip install -r requirements.txt
+
+# Driver oficial de MongoDB para Python, con el cual la API se conecta a MongoDB Atlas
 pymongo
+# Permite leer las variables de entorno (MONGODB_URI y DB_NAME) desde el archivo .env
 python-dotenv
+# Framework con el que se crean los endpoints de la API y se validan los datos que se envían
+fastapi
+# Servidor que deja corriendo la API en el computador
+uvicorn

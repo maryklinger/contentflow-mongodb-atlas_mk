@@ -1,0 +1,527 @@
+{
+  "info": {
+    "_postman_id": "38e89a64-2161-4299-b21b-7e6725ccfee3",
+    "name": "ContentFlow API",
+    "description": "Colección de pruebas de la API REST de ContentFlow, la cual se conecta a la base de datos en MongoDB Atlas. Antes de usarla, se debe dejar corriendo la API con el comando python -m uvicorn api.main:app --reload. Luego, las solicitudes se ejecutan en orden, de arriba hacia abajo, ya que las siguientes dependen de los datos que crean las anteriores. Las variables usuario_id y publicacion_id se completan solas al crear cada documento, y base_url corresponde a la dirección local donde corre la API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34696453"
+  },
+  "item": [
+    {
+      "name": "1. Conexión con Atlas",
+      "item": [
+        {
+          "name": "Probar la conexión con Atlas (health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Esta solicitud permite comprobar que la API logra comunicarse con MongoDB Atlas. Si todo está bien, responde con el código 200 y muestra el nombre de la base de datos junto con sus colecciones. Es la primera que se debe ejecutar."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Usuarios",
+      "item": [
+        {
+          "name": "Listar los usuarios de Kenya",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios?pais=Kenya",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "pais",
+                  "value": "Kenya"
+                }
+              ]
+            },
+            "description": "Es una solicitud de lectura que trae los usuarios filtrando por país. Debe responder con el código 200 y los 5 usuarios de Kenya, los mismos que se vieron en las consultas de la sección 4."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear un usuario nuevo (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si el documento se creó (código 201), se guarda su _id en una variable de la colección\nif (pm.response.code === 201) {\n  const j = pm.response.json();\n  const m = {usuarios:'usuario_id', publicaciones:'publicacion_id'};\n  const c = pm.request.url.path[0];\n  if (m[c] && j._id) { pm.collectionVariables.set(m[c], j._id); }\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila Rojas\",\n  \"correo\": \"camila.rojas@example.com\",\n  \"pais\": \"Chile\",\n  \"genero\": \"Femenino\",\n  \"dispositivo\": \"Móvil\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "description": "Es una solicitud de escritura que crea un usuario en la colección usuarios. Si todo sale bien, responde con el código 201 y entrega el usuario con su _id, el cual se guarda automáticamente en la variable usuario_id para usarlo en las solicitudes siguientes. Después de enviarla, se revisa en Compass o en Atlas que el documento realmente aparezca en la base, y esa captura es la evidencia de escritura en tiempo real."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear un usuario con un correo repetido (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila Rojas\",\n  \"correo\": \"camila.rojas@example.com\",\n  \"pais\": \"Chile\",\n  \"genero\": \"Femenino\",\n  \"dispositivo\": \"Móvil\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "description": "Se envía el mismo usuario por segunda vez. Como el correo ya está registrado, la API lo rechaza con el código 409, esto con el fin de no tener usuarios duplicados."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear un usuario con datos inválidos (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"correo\": \"no-es-correo\",\n  \"pais\": \"Chile\",\n  \"genero\": \"X\",\n  \"dispositivo\": \"Móvil\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "description": "Se envían a propósito un nombre vacío, un correo sin formato válido y un género que no existe. La API responde con el código 400 y detalla en qué campos está el problema, lo que demuestra que las validaciones de entrada funcionan."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener el usuario que se creó",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/{{usuario_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{usuario_id}}"
+              ]
+            },
+            "description": "Busca el usuario creado anteriormente por su _id. Debe responder con el código 200 y los datos del usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener un usuario que no existe error 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/user_no_existe",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "user_no_existe"
+              ]
+            },
+            "description": "Se busca un _id que no está en la base de datos. La API responde con el código 404, que significa que el documento no existe."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar el dispositivo del usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dispositivo\": \"Desktop\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/{{usuario_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{usuario_id}}"
+              ]
+            },
+            "description": "Es una solicitud de actualización. Solo se envía el campo que se quiere cambiar (dispositivo) y la API responde con el usuario ya modificado. Se puede comprobar el cambio en Compass o en Atlas."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Publicaciones",
+      "item": [
+        {
+          "name": "Crear una publicación (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si el documento se creó (código 201), se guarda su _id en una variable de la colección",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  const m = {usuarios:'usuario_id', publicaciones:'publicacion_id'};",
+                  "  const c = pm.request.url.path[0];",
+                  "  if (m[c] && j._id) { pm.collectionVariables.set(m[c], j._id); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"{{usuario_id}}\",\n  \"contenido\": \"Mi primera publicación en ContentFlow\",\n  \"categoria\": \"Tecnología\",\n  \"tipo\": \"Texto\",\n  \"hashtags\": [\n    \"#innovacion\",\n    \"#aprendizaje\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/publicaciones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "publicaciones"
+              ]
+            },
+            "description": "Crea una publicación en la colección publicaciones, utilizando como autor el usuario creado antes (variable usuario_id). Responde con el código 201 y guarda el _id de la publicación en la variable publicacion_id. Igual que con el usuario, se revisa después en Compass o en Atlas que el documento aparezca."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear una publicación con un autor que no existe (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"user_no_existe\",\n  \"contenido\": \"Mi primera publicación en ContentFlow\",\n  \"categoria\": \"Tecnología\",\n  \"tipo\": \"Texto\",\n  \"hashtags\": [\n    \"#innovacion\",\n    \"#aprendizaje\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/publicaciones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "publicaciones"
+              ]
+            },
+            "description": "Se intenta crear una publicación con un usuario_id que no existe en la base. La API comprueba la referencia y la rechaza con el código 400, esto con el fin de no dejar publicaciones sin autor."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar las publicaciones del usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/publicaciones?usuario_id={{usuario_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "publicaciones"
+              ],
+              "query": [
+                {
+                  "key": "usuario_id",
+                  "value": "{{usuario_id}}"
+                }
+              ]
+            },
+            "description": "Es una solicitud de lectura que trae las publicaciones de un usuario, de la más reciente a la más antigua. Debe mostrar la publicación que se acaba de crear."
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar un hashtag a la publicación",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hashtags\": [\n    \"#innovacion\",\n    \"#aprendizaje\",\n    \"#cultura\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/publicaciones/{{publicacion_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "publicaciones",
+                "{{publicacion_id}}"
+              ]
+            },
+            "description": "Actualiza los hashtags de la publicación creada, agregando #cultura a los que ya tenía. Responde con la publicación modificada."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Reacciones",
+      "item": [
+        {
+          "name": "Crear una reacción (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si el documento se creó (código 201), se guarda su _id en una variable de la colección",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  const m = {usuarios:'usuario_id', publicaciones:'publicacion_id'};",
+                  "  const c = pm.request.url.path[0];",
+                  "  if (m[c] && j._id) { pm.collectionVariables.set(m[c], j._id); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"user_94\",\n  \"publicacion_id\": \"{{publicacion_id}}\",\n  \"tipo_reaccion\": \"Me gusta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/reacciones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reacciones"
+              ]
+            },
+            "description": "Registra una reacción del usuario user_94 sobre la publicación creada. La API comprueba que tanto el usuario como la publicación existan y responde con el código 201."
+          },
+          "response": []
+        },
+        {
+          "name": "Repetir la reacción del mismo usuario (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"user_94\",\n  \"publicacion_id\": \"{{publicacion_id}}\",\n  \"tipo_reaccion\": \"Me encanta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/reacciones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reacciones"
+              ]
+            },
+            "description": "Se intenta registrar otra reacción del mismo usuario sobre la misma publicación. El índice único de la colección reacciones lo rechaza y la API responde con el código 409."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Restablecer",
+      "item": [
+        {
+          "name": "Eliminar la publicación (junto con sus reacciones)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/publicaciones/{{publicacion_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "publicaciones",
+                "{{publicacion_id}}"
+              ]
+            },
+            "description": "Elimina la publicación de prueba. Al hacerlo, la API elimina también sus reacciones, sus comentarios y su referencia dentro de las campañas, para no dejar referencias huérfanas, igual que en la sección 5."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar el usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/{{usuario_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{usuario_id}}"
+              ]
+            },
+            "description": "Elimina el usuario de prueba. Esta solicitud se ejecuta después de eliminar su publicación, ya que la API no permite eliminar un usuario que todavía tiene publicaciones. Con esto la base vuelve a quedar con 500 documentos por colección."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "usuario_id",
+      "value": ""
+    },
+    {
+      "key": "publicacion_id",
+      "value": ""
+    }
+  ]
+}
